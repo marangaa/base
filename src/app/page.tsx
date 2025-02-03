@@ -1,101 +1,103 @@
-import Image from "next/image";
+// app/page.tsx
+import { createClient } from '@/utils/supabase/server'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MarkdownContent } from '@/components/MarkdownContent'
+import Link from 'next/link'
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient()
+  
+  // Get completed analyses
+  const { data: analyses } = await supabase
+    .from('analysis_results')
+    .select(`
+      *,
+      documents (
+        id,
+        filename,
+        created_at,
+        status
+      )
+    `)
+    .order('created_at', { ascending: false })
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="min-h-screen">
+      {/* Hero */}
+      <div className="bg-white border-b">
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+              Understanding Kenyan Bills & Proposals
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Get clear explanations of new bills and how they affect you - no legal jargon, just straight talk.
+            </p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+      </div>
+
+      {/* Document List */}
+      <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="grid gap-6">
+          {analyses?.map((analysis) => (
+            <Card 
+              key={analysis.id} 
+              className="hover:shadow-lg transition-shadow duration-200"
+            >
+              <CardHeader className="space-y-0">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-xl mb-1">
+                      {analysis.documents.filename}
+                    </CardTitle>
+                    <p className="text-sm text-gray-500">
+                      Analyzed {new Date(analysis.documents.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Link 
+                    href={`/analysis/${analysis.documents.id}`}
+                    className="inline-flex px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Read Analysis
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Show first main point as preview */}
+                  <div>
+                    <MarkdownContent 
+                      content={analysis.simple_summary.main_points[0].title.split('\n\n')[0]}
+                      className="line-clamp-3 [&>*]:text-sm [&>*]:leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Show first key change */}
+                  {analysis.simple_summary.key_changes[0] && (
+                    <div className="mt-4 grid md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-1">From</p>
+                        <p className="text-sm">{analysis.simple_summary.key_changes[0].from}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-1">To</p>
+                        <p className="text-sm">{analysis.simple_summary.key_changes[0].to}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {(!analyses || analyses.length === 0) && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No analyzed documents yet.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  )
 }
