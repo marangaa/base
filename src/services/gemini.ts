@@ -7,7 +7,7 @@ const analysisSchema = {
   properties: {
     simple_analysis: {
       type: SchemaType.OBJECT,
-      properties: {
+      properties: { 
         main_points: {
           type: SchemaType.ARRAY,
           items: {
