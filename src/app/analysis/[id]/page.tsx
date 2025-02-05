@@ -26,18 +26,19 @@ function LoadingAnalysis() {
 }
 
 export default async function AnalysisPage({ 
-  params: { id } 
-}: { 
-  params: { id: string } 
-}) {
+  params
+}: { params: { id: string } | Promise<{ id: string }> }) {
   return (
     <Suspense fallback={<LoadingAnalysis />}>
-      <AnalysisContent id={id} />
+      <AnalysisContent params={params} />
     </Suspense>
   )
 }
 
-async function AnalysisContent({ id }: { id: string }) {
+async function AnalysisContent({ params }: { params: { id: string } | Promise<{ id: string }> }) {
+  // Await the params to access the dynamic value
+  const { id } = await params
+
   const supabase = await createClient()
 
   const { data } = await supabase
@@ -59,7 +60,6 @@ async function AnalysisContent({ id }: { id: string }) {
   }
 
   const { documents: document, simple_summary, impact_analysis, deep_dive } = data;
-
   const isProcessing = document.status === 'analyzing';
 
   return (
@@ -142,12 +142,13 @@ async function AnalysisContent({ id }: { id: string }) {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>{item.category}</CardTitle>
-                        <span className={`
-                          px-3 py-1 rounded-full text-sm font-medium 
-                          ${item.severity === 'High' ? 'bg-red-100 text-red-800' : 
-                            item.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 
-                            'bg-green-100 text-green-800'}
-                        `}>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          item.severity === 'High'
+                            ? 'bg-red-100 text-red-800'
+                            : item.severity === 'Medium'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                        }`}>
                           {item.severity} Impact
                         </span>
                       </div>
