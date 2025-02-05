@@ -25,18 +25,21 @@ function LoadingAnalysis() {
   )
 }
 
-export default async function AnalysisPage({ 
+export default async function AnalysisPage({
   params
-}: { params: { id: string } | Promise<{ id: string }> }) {
+}: { params: { id: string } }) {
+  // Ensure that we always pass a Promise to the child component.
   return (
     <Suspense fallback={<LoadingAnalysis />}>
-      <AnalysisContent params={params} />
+      <AnalysisContent params={Promise.resolve(params)} />
     </Suspense>
   )
 }
 
-async function AnalysisContent({ params }: { params: { id: string } | Promise<{ id: string }> }) {
-  // Await the params to access the dynamic value
+async function AnalysisContent({
+  params
+}: { params: Promise<{ id: string }> }) {
+  // Await the params promise to extract the id
   const { id } = await params
 
   const supabase = await createClient()
@@ -59,22 +62,22 @@ async function AnalysisContent({ params }: { params: { id: string } | Promise<{ 
     notFound()
   }
 
-  const { documents: document, simple_summary, impact_analysis, deep_dive } = data;
-  const isProcessing = document.status === 'analyzing';
+  const { documents: document, simple_summary, impact_analysis, deep_dive } = data
+  const isProcessing = document.status === 'analyzing'
 
   return (
     <div>
       {/* Document Header */}
       <header className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-6 py-6">
-          <Link 
+          <Link
             href="/"
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4 group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
             Back to documents
           </Link>
-          
+
           <div className="flex items-start gap-4">
             <FileText className="h-6 w-6 text-blue-500 mt-1" />
             <div>
@@ -142,13 +145,15 @@ async function AnalysisContent({ params }: { params: { id: string } | Promise<{ 
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>{item.category}</CardTitle>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          item.severity === 'High'
-                            ? 'bg-red-100 text-red-800'
-                            : item.severity === 'Medium'
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            item.severity === 'High'
+                              ? 'bg-red-100 text-red-800'
+                              : item.severity === 'Medium'
                               ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-green-100 text-green-800'
-                        }`}>
+                          }`}
+                        >
                           {item.severity} Impact
                         </span>
                       </div>
@@ -163,10 +168,7 @@ async function AnalysisContent({ params }: { params: { id: string } | Promise<{ 
               </TabsContent>
 
               <TabsContent value="deep-dive" className="space-y-6">
-                <DeepDiveAnalysis 
-                  deepDive={deep_dive} 
-                  isLoading={isProcessing}
-                />
+                <DeepDiveAnalysis deepDive={deep_dive} isLoading={isProcessing} />
               </TabsContent>
             </div>
           </Tabs>
