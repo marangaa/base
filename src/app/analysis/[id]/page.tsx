@@ -24,14 +24,15 @@ function LoadingAnalysis() {
  */
 export default async function AnalysisPage({
   params,
-}: { params: { id: string } | Promise<{ id: string }> }) {
-  // Resolve params in case they are asynchronous.
+}: {
+  params: { id: string }
+}) {
+  // Await the params before using them
   const resolvedParams = await Promise.resolve(params)
-  const { id } = resolvedParams
 
   return (
     <Suspense fallback={<LoadingAnalysis />}>
-      <AnalysisContent id={id} />
+      <AnalysisContent id={resolvedParams.id} />
     </Suspense>
   )
 }
