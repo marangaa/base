@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { enrichAnalysis } from './perplexity';
+import { SimpleAnalysis } from '../types/analysis';
+import { AnalysisResult } from '../types/analysispage';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -176,7 +178,7 @@ export async function analyzePDF(pdfUrl: string) {
 }
 
 // Impact Analysis Function
-export async function analyzeImpact(pdfUrl: string, simpleAnalysis: any) {
+export async function analyzeImpact(pdfUrl: string, simpleAnalysis: SimpleAnalysis) {
   const model = genAI.getGenerativeModel({
     model: "gemini-exp-1206",
     generationConfig: {
@@ -227,7 +229,7 @@ export async function analyzeImpact(pdfUrl: string, simpleAnalysis: any) {
 }
 
 // Deep Dive Analysis Function
-export async function analyzeDeepDive(pdfUrl: string, initialAnalysis: any) {
+export async function analyzeDeepDive(pdfUrl: string, initialAnalysis: AnalysisResult) {
   const model = genAI.getGenerativeModel({
     model: "gemini-exp-1206",
     generationConfig: {
@@ -269,7 +271,8 @@ export async function analyzeDeepDive(pdfUrl: string, initialAnalysis: any) {
     ]);
 
     // Get enriched analysis from Perplexity
-    const searchQuery = `Latest analysis and expert opinions on ${initialAnalysis.title} implementation and comparison with other country strategies with any other relevant information`;
+    const mainTopic = initialAnalysis.simple_summary?.main_points?.[0]?.title || 'policy';
+    const searchQuery = `Latest analysis and expert opinions on ${mainTopic} implementation and comparison with other country strategies`;
     const enrichedData = await enrichAnalysis(searchQuery);
 
     // Combine both analyses
