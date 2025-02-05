@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { enrichAnalysis } from './perplexity';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -56,18 +57,8 @@ const impactSchema = {
             type: SchemaType.OBJECT,
             properties: {
               category: { type: SchemaType.STRING },
-              description: { type: SchemaType.STRING },
-              severity: { type: SchemaType.STRING }
-            }
-          }
-        },
-        community_impact: {
-          type: SchemaType.ARRAY,
-          items: {
-            type: SchemaType.OBJECT,
-            properties: {
-              area: { type: SchemaType.STRING },
-              effect: { type: SchemaType.STRING }
+              severity: { type: SchemaType.STRING },
+              description: { type: SchemaType.STRING }
             }
           }
         }
@@ -76,9 +67,64 @@ const impactSchema = {
   }
 };
 
+// Deep Dive Schema
+const deepDiveSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    comparative_analysis: {
+      type: SchemaType.OBJECT,
+      properties: {
+        similar_strategies: {
+          type: SchemaType.ARRAY,
+          items: {
+            type: SchemaType.OBJECT,
+            properties: {
+              country: { type: SchemaType.STRING },
+              strategy: { type: SchemaType.STRING },
+              key_differences: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+            }
+          }
+        },
+        global_context: { type: SchemaType.STRING },
+        unique_aspects: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+      }
+    },
+    implementation_analysis: {
+      type: SchemaType.OBJECT,
+      properties: {
+        challenges: {
+          type: SchemaType.ARRAY,
+          items: {
+            type: SchemaType.OBJECT,
+            properties: {
+              area: { type: SchemaType.STRING },
+              description: { type: SchemaType.STRING },
+              potential_solutions: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+            }
+          }
+        },
+        success_factors: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+        timeline_assessment: { type: SchemaType.STRING }
+      }
+    },
+    expert_insights: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          topic: { type: SchemaType.STRING },
+          analysis: { type: SchemaType.STRING },
+          recommendations: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+        }
+      }
+    }
+  }
+};
+
+// Initial Analysis Function
 export async function analyzePDF(pdfUrl: string) {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-exp-1206",
     generationConfig: {
       temperature: 0.7,
       responseMimeType: "application/json",
@@ -94,6 +140,7 @@ export async function analyzePDF(pdfUrl: string) {
     1. The main points and what they actually mean
     2. Key changes from current situation
     3. Technical/legal jargon and what it means in simple terms
+    4. please provide as much detail as possible and present it in a clear and concise manner.
     
     Be direct and clear. Identify any hidden implications or concerning elements.
     If something could negatively impact citizens, make sure to highlight it.
@@ -102,7 +149,6 @@ export async function analyzePDF(pdfUrl: string) {
   `;
 
   try {
-    // Fetch the PDF from Supabase storage
     const pdfResponse = await fetch(pdfUrl);
     if (!pdfResponse.ok) throw new Error('Failed to fetch PDF');
     
@@ -129,9 +175,10 @@ export async function analyzePDF(pdfUrl: string) {
   }
 }
 
+// Impact Analysis Function
 export async function analyzeImpact(pdfUrl: string, simpleAnalysis: any) {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-exp-1206",
     generationConfig: {
       temperature: 0.7,
       responseMimeType: "application/json",
@@ -154,22 +201,88 @@ export async function analyzeImpact(pdfUrl: string, simpleAnalysis: any) {
 
   try {
     const pdfResponse = await fetch(pdfUrl);
-    const pdfBuffer = await pdfResponse.arrayBuffer();
+    if (!pdfResponse.ok) throw new Error('Failed to fetch PDF');
     
+    const pdfBuffer = await pdfResponse.arrayBuffer();
+    const base64PDF = Buffer.from(pdfBuffer).toString('base64');
+
     const result = await model.generateContent([
       {
         inlineData: {
-          data: Buffer.from(pdfBuffer).toString('base64'),
+          data: base64PDF,
           mimeType: "application/pdf",
         }
       },
-      prompt
+      {
+        text: prompt
+      }
     ]);
 
     const response = result.response;
     return JSON.parse(response.text());
   } catch (error) {
     console.error('Impact analysis error:', error);
+    throw error;
+  }
+}
+
+// Deep Dive Analysis Function
+export async function analyzeDeepDive(pdfUrl: string, initialAnalysis: any) {
+  const model = genAI.getGenerativeModel({
+    model: "gemini-exp-1206",
+    generationConfig: {
+      temperature: 0.7,
+      responseMimeType: "application/json",
+      responseSchema: deepDiveSchema
+    }
+  });
+
+  const prompt = `
+    Based on this document and initial analysis: ${JSON.stringify(initialAnalysis)}
+    
+    Provide a deep dive analysis focusing on:
+    1. Comparison with other national strategies
+    2. Implementation challenges and success factors
+    3. Expert insights on key aspects
+    
+    Consider both technical and socio-economic factors.
+    Be specific about potential challenges and solutions.
+  `;
+
+  try {
+    const pdfResponse = await fetch(pdfUrl);
+    if (!pdfResponse.ok) throw new Error('Failed to fetch PDF');
+    
+    const pdfBuffer = await pdfResponse.arrayBuffer();
+    const base64PDF = Buffer.from(pdfBuffer).toString('base64');
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: base64PDF,
+          mimeType: "application/pdf",
+        }
+      },
+      {
+        text: prompt
+      }
+    ]);
+
+    // Get enriched analysis from Perplexity
+    const searchQuery = `Latest analysis and expert opinions on ${initialAnalysis.title} implementation and comparison with other country strategies with any other relevant information`;
+    const enrichedData = await enrichAnalysis(searchQuery);
+
+    // Combine both analyses
+    const baseAnalysis = JSON.parse(result.response.text());
+    return {
+      ...baseAnalysis,
+      external_analysis: {
+        content: enrichedData.content,
+        sources: enrichedData.citations
+      }
+    };
+  } catch (error) {
+    console.error('Deep dive analysis error:', error);
     throw error;
   }
 }

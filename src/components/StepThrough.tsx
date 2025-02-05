@@ -7,8 +7,13 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SmartContent } from './content'
 
+interface Point {
+  title: string;
+  description?: string;  
+}
+
 interface StepThroughProps {
-  points: { title: string }[]
+  points: Point[]
 }
 
 export function StepThrough({ points }: StepThroughProps) {
@@ -48,10 +53,17 @@ export function StepThrough({ points }: StepThroughProps) {
               transition={{ duration: 0.3 }}
               className="min-h-[400px]"
             >
-              <SmartContent 
-                content={points[currentIndex].title} 
-                index={currentIndex} 
-              />
+              <div className="space-y-4">
+                <SmartContent 
+                  content={points[currentIndex].title} 
+                  index={currentIndex}
+                />
+                {points[currentIndex].description && (
+                  <div className="mt-4 text-gray-600 leading-relaxed">
+                    {points[currentIndex].description}
+                  </div>
+                )}
+              </div>
             </motion.div>
           </AnimatePresence>
         </CardContent>

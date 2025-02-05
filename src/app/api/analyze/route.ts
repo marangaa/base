@@ -1,7 +1,6 @@
 import { createClient } from '@/utils/supabase/client'
 import { NextResponse } from 'next/server'
-import { analyzePDF, analyzeImpact } from '@/services/gemini'
-import { storeAnalysisResult, updateAnalysisStatus } from '@/services/analysis-storage'
+import { analyzePDF, analyzeImpact, analyzeDeepDive } from '@/services/gemini'
 
 const supabase = createClient()
 
@@ -10,9 +9,12 @@ interface AnalyzeRequest {
 }
 
 export async function POST(request: Request) {
-  const { documentId } = await request.json() as AnalyzeRequest;
+  let documentId: string | undefined;
 
   try {
+    const body = await request.json() as AnalyzeRequest;
+    documentId = body.documentId;
+
     if (!documentId) {
       return NextResponse.json(
         { error: 'Document ID is required' },
@@ -34,41 +36,109 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if analysis exists
+    const { data: existingAnalysis } = await supabase
+      .from('analysis_results')
+      .select('id')
+      .eq('document_id', documentId)
+      .single();
+
+    // Update status to analyzing
+    await supabase
+      .from('documents')
+      .update({ status: 'analyzing' })
+      .eq('id', documentId);
+
     // Get file URL
     const { data: { publicUrl } } = supabase
       .storage
       .from('documents')
       .getPublicUrl(document.storage_url);
 
-    console.log('Storage URL:', document.storage_url);
-    console.log('Public URL:', publicUrl);
+    // Run analyses
+    console.log('Starting initial analysis...');
+    const initialAnalysis = await analyzePDF(publicUrl);
+    console.log('Initial analysis complete');
 
-    // Run analysis
-    const analysis = await analyzePDF(publicUrl);
-    const impactAnalysis = await analyzeImpact(publicUrl, analysis);
+    console.log('Starting impact analysis...');
+    const impactAnalysis = await analyzeImpact(publicUrl, initialAnalysis);
+    console.log('Impact analysis complete');
 
-    // Store analysis results
-    await storeAnalysisResult({
-      document_id: documentId,
-      simple_analysis: analysis.simple_analysis,
-      impact_analysis: impactAnalysis.impact_analysis,
-      deep_dive: analysis.deep_dive,
-      status: 'completed'
-    });
+    console.log('Starting deep dive analysis...');
+    const deepDiveAnalysis = await analyzeDeepDive(publicUrl, initialAnalysis);
+    console.log('Deep dive analysis complete');
 
-    return NextResponse.json({ 
+    // Store analysis results - either update or insert
+    const { error: analysisError } = existingAnalysis 
+      ? await supabase
+          .from('analysis_results')
+          .update({
+            simple_summary: initialAnalysis.simple_analysis,
+            impact_analysis: impactAnalysis.impact_analysis,
+            deep_dive: deepDiveAnalysis,
+            status: 'completed',
+            error: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('document_id', documentId)
+      : await supabase
+          .from('analysis_results')
+          .insert({
+            document_id: documentId,
+            simple_summary: initialAnalysis.simple_analysis,
+            impact_analysis: impactAnalysis.impact_analysis,
+            deep_dive: deepDiveAnalysis,
+            status: 'completed'
+          });
+
+    if (analysisError) throw analysisError;
+
+    // Update document status to complete
+    await supabase
+      .from('documents')
+      .update({ status: 'complete' })
+      .eq('id', documentId);
+
+    return NextResponse.json({
       message: 'Analysis complete',
-      analysis 
+      analysis: {
+        simple_summary: initialAnalysis.simple_analysis,
+        impact_analysis: impactAnalysis.impact_analysis,
+        deep_dive: deepDiveAnalysis
+      }
     });
 
   } catch (error) {
     console.error('Analysis error:', error);
     
-    const message = error instanceof Error ? error.message : 'Analysis failed';
-    await updateAnalysisStatus(documentId, 'failed', message);
+    if (documentId) {
+      try {
+        // Update document status
+        await supabase
+          .from('documents')
+          .update({ status: 'failed' })
+          .eq('id', documentId);
+
+        // Update or insert error status
+        const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+        await supabase
+          .from('analysis_results')
+          .upsert({
+            document_id: documentId,
+            status: 'failed',
+            error: errorMessage,
+            updated_at: new Date().toISOString()
+          });
+
+      } catch (e) {
+        console.error('Error updating failure status:', e);
+      }
+    }
 
     return NextResponse.json(
-      { error: message },
+      { 
+        error: error instanceof Error ? error.message : 'Analysis failed',
+      },
       { status: 500 }
     );
   }

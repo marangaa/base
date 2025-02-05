@@ -1,35 +1,66 @@
+import { Suspense } from 'react'
 import { createClient } from '@/utils/supabase/server'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertTriangle, FileText, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
-import type { AnalysisResult } from '@/types/analysispage'
-import { TermsGrid } from '@/components/TermsGrid'
-import { ChangesTimeline } from '@/components/ChangesTimeline'
+import { DeepDiveAnalysis } from '@/components/DeepDiveAnalysis'
 import { StepThrough } from '@/components/StepThrough'
+import { ChangesTimeline } from '@/components/ChangesTimeline'
+import { TermsGrid } from '@/components/TermsGrid'
+import Link from 'next/link'
+import { ArrowLeft, FileText } from 'lucide-react'
+import type { AnalysisResult } from '@/types/analysispage'
+
+function LoadingAnalysis() {
+  return (
+    <div className="animate-pulse space-y-8">
+      <div className="h-24 bg-gray-100 rounded-lg" />
+      <div className="h-12 bg-gray-100 rounded" />
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-48 bg-gray-100 rounded-lg" />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default async function AnalysisPage({ 
-  params 
+  params: { id } 
 }: { 
   params: { id: string } 
 }) {
+  return (
+    <Suspense fallback={<LoadingAnalysis />}>
+      <AnalysisContent id={id} />
+    </Suspense>
+  )
+}
+
+async function AnalysisContent({ id }: { id: string }) {
   const supabase = await createClient()
 
   const { data } = await supabase
     .from('analysis_results')
     .select(`
       *,
-      documents (*)
+      documents (
+        id,
+        filename,
+        created_at,
+        status
+      )
     `)
-    .eq('document_id', params.id)
+    .eq('document_id', id)
     .single() as { data: AnalysisResult | null }
 
   if (!data) {
     notFound()
   }
 
-  const { documents: document, simple_summary: summary, impact_analysis: impact } = data
+  const { documents: document, simple_summary, impact_analysis, deep_dive } = data;
+
+  const isProcessing = document.status === 'analyzing';
 
   return (
     <div>
@@ -40,7 +71,7 @@ export default async function AnalysisPage({
             href="/"
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4 group"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
             Back to documents
           </Link>
           
@@ -67,6 +98,7 @@ export default async function AnalysisPage({
               <TabsList className="h-16">
                 <TabsTrigger value="summary">Simple Explanation</TabsTrigger>
                 <TabsTrigger value="impact">Impact Analysis</TabsTrigger>
+                <TabsTrigger value="deep-dive">Deep Dive</TabsTrigger>
               </TabsList>
             </div>
 
@@ -79,7 +111,7 @@ export default async function AnalysisPage({
                     <CardTitle>Main Points</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <StepThrough points={summary.main_points} />
+                    <StepThrough points={simple_summary.main_points} />
                   </CardContent>
                 </Card>
 
@@ -89,7 +121,7 @@ export default async function AnalysisPage({
                     <CardTitle>What&apos;s Changing?</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ChangesTimeline changes={summary.key_changes} />
+                    <ChangesTimeline changes={simple_summary.key_changes} />
                   </CardContent>
                 </Card>
 
@@ -99,13 +131,13 @@ export default async function AnalysisPage({
                     <CardTitle>Terms Explained</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <TermsGrid terms={summary.jargon_translation} />
+                    <TermsGrid terms={simple_summary.jargon_translation} />
                   </CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="impact" className="space-y-6">
-                {impact.personal_impact.map((item, index) => (
+                {impact_analysis.personal_impact.map((item, index) => (
                   <Card key={index}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -116,9 +148,6 @@ export default async function AnalysisPage({
                             item.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 
                             'bg-green-100 text-green-800'}
                         `}>
-                          {item.severity === 'High' && (
-                            <AlertTriangle className="inline-block w-4 h-4 mr-1" />
-                          )}
                           {item.severity} Impact
                         </span>
                       </div>
@@ -130,6 +159,13 @@ export default async function AnalysisPage({
                     </CardContent>
                   </Card>
                 ))}
+              </TabsContent>
+
+              <TabsContent value="deep-dive" className="space-y-6">
+                <DeepDiveAnalysis 
+                  deepDive={deep_dive} 
+                  isLoading={isProcessing}
+                />
               </TabsContent>
             </div>
           </Tabs>

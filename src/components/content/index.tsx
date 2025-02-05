@@ -11,7 +11,7 @@ function parseContent(content: string) {
   const hasBulletPoints = content.includes('\n\n')
   
   // Case 1: Long paragraph with title
-  const longParagraphMatch = content.match(/^(.*?)\.\s+(.*)$/s)
+  const longParagraphMatch = content.match(/^(.*?)\.([\s\S]*)$/);
   if (longParagraphMatch) {
     return {
       type: 'paragraph',

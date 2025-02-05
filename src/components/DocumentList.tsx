@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { RefreshCw, FileText } from 'lucide-react'
 
 interface Document {
   id: string
@@ -19,8 +20,10 @@ interface Document {
 
 export default function DocumentList({ initialDocuments }: { initialDocuments: Document[] }) {
   const [documents, setDocuments] = useState(initialDocuments)
+  const [processingIds, setProcessingIds] = useState<string[]>([])
 
   const startAnalysis = async (documentId: string) => {
+    setProcessingIds(prev => [...prev, documentId])
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -41,12 +44,13 @@ export default function DocumentList({ initialDocuments }: { initialDocuments: D
         )
       )
 
-      // Optionally reload the page to get fresh data
+      // Reload to get fresh data
       window.location.reload()
 
     } catch (error) {
       console.error('Analysis error:', error)
-      // You might want to show an error notification here
+    } finally {
+      setProcessingIds(prev => prev.filter(id => id !== documentId))
     }
   }
 
@@ -60,46 +64,56 @@ export default function DocumentList({ initialDocuments }: { initialDocuments: D
           {documents.map((doc) => (
             <div 
               key={doc.id} 
-              className="p-4 border rounded-lg"
+              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-medium">{doc.filename}</h3>
-                  <p className="text-sm text-gray-500">
-                    Uploaded {new Date(doc.created_at).toLocaleDateString()}
-                  </p>
+                <div className="flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-blue-500 mt-1" />
+                  <div>
+                    <h3 className="font-medium">{doc.filename}</h3>
+                    <p className="text-sm text-gray-500">
+                      Uploaded {new Date(doc.created_at).toLocaleDateString()}
+                      {doc.analysis_results?.updated_at && (
+                        <> · Last analyzed {new Date(doc.analysis_results.updated_at).toLocaleDateString()}</>
+                      )}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <StatusBadge status={doc.status} />
                   
-                  {doc.status === 'uploaded' && (
-                    <Button 
+                  {doc.status !== 'analyzing' && (
+                    <Button
                       onClick={() => startAnalysis(doc.id)}
-                      className="text-sm"
+                      variant={doc.status === 'complete' ? 'outline' : 'default'}
+                      size="sm"
+                      disabled={processingIds.includes(doc.id)}
+                      className="gap-2"
                     >
-                      Start Analysis
+                      <RefreshCw className={`w-4 h-4 ${
+                        processingIds.includes(doc.id) ? 'animate-spin' : ''
+                      }`} />
+                      {doc.status === 'complete' ? 'Rerun Analysis' : 
+                       doc.status === 'failed' ? 'Retry Analysis' : 
+                       'Start Analysis'}
                     </Button>
                   )}
 
-                  {doc.status === 'failed' && (
-                    <Button 
-                      onClick={() => startAnalysis(doc.id)}
-                      variant="destructive"
-                      className="text-sm"
-                    >
-                      Retry Analysis
-                    </Button>
-                  )}
-
-                  <a
-                    href={`/analysis/${doc.id}`}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
                   >
-                    View Analysis →
-                  </a>
+                    <a
+                      href={`/analysis/${doc.id}`}
+                      className="text-sm"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View Analysis →
+                    </a>
+                  </Button>
                 </div>
               </div>
 
@@ -108,6 +122,16 @@ export default function DocumentList({ initialDocuments }: { initialDocuments: D
                 <Alert variant="destructive" className="mt-2">
                   <AlertDescription>
                     {doc.analysis_results.error}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Show current status for analyzing documents */}
+              {doc.status === 'analyzing' && (
+                <Alert className="mt-2">
+                  <AlertDescription className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Analysis in progress...
                   </AlertDescription>
                 </Alert>
               )}
