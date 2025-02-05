@@ -25,23 +25,29 @@ function LoadingAnalysis() {
   )
 }
 
+/**
+ * The page component receives the dynamic params.
+ * We await/resolve the params to extract the id and then pass it down as a plain string.
+ */
 export default async function AnalysisPage({
-  params
-}: { params: { id: string } }) {
-  // Ensure that we always pass a Promise to the child component.
+  params,
+}: { params: { id: string } | Promise<{ id: string }> }) {
+  // Resolve params in case they are asynchronous.
+  const resolvedParams = await Promise.resolve(params)
+  const { id } = resolvedParams
+
   return (
     <Suspense fallback={<LoadingAnalysis />}>
-      <AnalysisContent params={Promise.resolve(params)} />
+      <AnalysisContent id={id} />
     </Suspense>
   )
 }
 
-async function AnalysisContent({
-  params
-}: { params: Promise<{ id: string }> }) {
-  // Await the params promise to extract the id
-  const { id } = await params
-
+/**
+ * AnalysisContent now accepts an id of type string.
+ * This component fetches the analysis data using the provided id.
+ */
+async function AnalysisContent({ id }: { id: string }) {
   const supabase = await createClient()
 
   const { data } = await supabase
