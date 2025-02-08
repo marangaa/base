@@ -1,25 +1,12 @@
-import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MarkdownContent } from '@/components/content/MarkdownContent'
 import Link from 'next/link'
 import { ArrowRight, FileText } from 'lucide-react'
+import { getAllAnalyses } from '@/lib/actions/analysis'
 
 export default async function Home() {
-  const supabase = await createClient()
+  const analyses = await getAllAnalyses()
   
-  const { data: analyses } = await supabase
-    .from('analysis_results')
-    .select(`
-      *,
-      documents (
-        id,
-        filename,
-        created_at,
-        status
-      )
-    `)
-    .order('created_at', { ascending: false })
-
   return (
     <div>
       {/* Hero */}

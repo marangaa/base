@@ -1,8 +1,13 @@
 import { Suspense } from 'react'
-import { createClient } from '@/utils/supabase/server'
+import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { AnalysisView } from '@/components/analysis/AnalysisView'
-import type { AnalysisResult } from '@/types/analysispage'
+import { getAnalysis } from '@/lib/actions/analysis'
+
+export const metadata: Metadata = {
+  title: 'Analysis Details',
+  description: 'Detailed analysis of the document',
+}
 
 function LoadingAnalysis() {
   return (
@@ -18,49 +23,23 @@ function LoadingAnalysis() {
   )
 }
 
-/**
- * The page component receives the dynamic params.
- * We await/resolve the params to extract the id and then pass it down as a plain string.
- */
-export default async function AnalysisPage({
-  params,
-}: {
-  params: { id: string }
-}) {
-  // Await the params before using them
-  const resolvedParams = await Promise.resolve(params)
-
-  return (
-    <Suspense fallback={<LoadingAnalysis />}>
-      <AnalysisContent id={resolvedParams.id} />
-    </Suspense>
-  )
+type Props = {
+  // Declare params as a Promise so that it must be awaited.
+  params: Promise<{ id: string }>
 }
 
-/**
- * AnalysisContent now accepts an id of type string.
- * This component fetches the analysis data using the provided id.
- */
-async function AnalysisContent({ id }: { id: string }) {
-  const supabase = await createClient()
-
-  const { data } = await supabase
-    .from('analysis_results')
-    .select(`
-      *,
-      documents (
-        id,
-        filename,
-        created_at,
-        status
-      )
-    `)
-    .eq('document_id', id)
-    .single() as { data: AnalysisResult | null }
+export default async function AnalysisPage({ params }: Props) {
+  // Await the params to access its properties.
+  const { id } = await params
+  const data = await getAnalysis(id)
 
   if (!data) {
     notFound()
   }
 
-  return <AnalysisView data={data} />
+  return (
+    <Suspense fallback={<LoadingAnalysis />}>
+      <AnalysisView data={data} />
+    </Suspense>
+  )
 }
