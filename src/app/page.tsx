@@ -3,16 +3,9 @@ import { Suspense } from 'react'
 import SearchResults from '@/components/SearchResults'
 //import { Search } from 'lucide-react';
 
-// Update to handle async searchParams in Next.js 15
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: { query?: string }
-}) {
-  // In Next.js 15, searchParams is a Promise that needs to be awaited
-  const params = await searchParams;
-  const query = params?.query || '';
-  
+// Page no longer needs to handle searchParams since search is disabled
+export default async function Home() {
+  // Removed searchParams handling since search functionality is disabled  
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -40,7 +33,60 @@ export default async function Home({
             <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-gray-600 max-w-xl mx-auto">
               Get clear explanations of new bills and how they affect you - no legal jargon, just straight talk.
             </p>
-            
+
+            {/* Search functionality temporarily disabled
+            <form action="" method="get" className="mt-8 sm:mt-10">
+              <div className="flex items-center max-w-xl mx-auto shadow-lg rounded-full overflow-hidden border-2 border-gray-100">
+                <div className="relative flex-grow">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                    <Search className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <input
+                    type="text"
+                    name="query"
+                    placeholder="Search for a bill or policy..."
+                    defaultValue={query}
+                    className="block w-full pl-10 pr-4 py-3 sm:py-4 border-0 focus:ring-0 focus:outline-none text-sm sm:text-base placeholder-gray-400"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 p-3 sm:p-4 transition-colors duration-200 flex-shrink-0"
+                  aria-label="Search"
+                >
+                  <Search className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </button>
+              </div>
+              
+              <div className="mt-3 flex flex-wrap justify-center gap-2 sm:hidden">
+                <button
+                  type="submit"
+                  name="query" 
+                  value="Budget Policy"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs text-gray-700 transition-colors"
+                >
+                  Budget Policy
+                </button>
+                <button
+                  type="submit"
+                  name="query" 
+                  value="AI Strategy"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs text-gray-700 transition-colors"
+                >
+                  AI Strategy
+                </button>
+                <button
+                  type="submit"
+                  name="query" 
+                  value="Virtual Assets"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs text-gray-700 transition-colors"
+                >
+                  Virtual Assets
+                </button>
+              </div>
+            </form>
+            */}
+
             {/* Search functionality temporarily disabled
             <form action="" method="get" className="mt-8 sm:mt-10">
               <div className="flex items-center max-w-xl mx-auto shadow-lg rounded-full overflow-hidden border-2 border-gray-100">
@@ -100,7 +146,7 @@ export default async function Home({
       {/* Content Section */}
       <div className="bg-gray-50 flex-grow">
         <Suspense fallback={<div className="py-20 text-center">Loading...</div>}>
-          <SearchResults query={query} />
+          <SearchResults query={''} />
         </Suspense>
       </div>
 
