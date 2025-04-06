@@ -1,108 +1,122 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MarkdownContent } from '@/components/content/MarkdownContent'
-import Link from 'next/link'
-import { ArrowRight, FileText } from 'lucide-react'
-import { getAllAnalyses } from '@/lib/actions/analysis'
+import Image from 'next/image'
+import { Suspense } from 'react'
+import SearchResults from '@/components/SearchResults'
+import { Search } from 'lucide-react';
 
-export default async function Home() {
-  const analyses = await getAllAnalyses()
+export default async function Home({
+  searchParams
+}: {
+  searchParams: { query?: string }
+}) {
+  // Properly await the searchParams according to the dynamic-apis.md documentation
+  const params = await searchParams;
+  const query = params?.query || '';
   
   return (
-    <div>
-      {/* Hero */}
+    <div className="flex flex-col min-h-screen">
+      {/* Hero Section */}
       <div className="relative isolate overflow-hidden bg-white">
         <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
           <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
         </div>
         
-        <div className="mx-auto max-w-6xl px-6 pb-24 pt-20 sm:pt-32 lg:px-8">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-16 sm:pb-24 pt-12 sm:pt-20 lg:pt-32 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h1 className="font-display text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            <div className="mb-8 flex justify-center">
+              <div className="relative h-16 w-16 sm:h-24 sm:w-24 rounded-full bg-blue-100 flex items-center justify-center">
+                <Image 
+                  src="/file.svg" 
+                  alt="Document Icon" 
+                  width={48} 
+                  height={48}
+                  className="h-8 w-8 sm:h-12 sm:w-12" 
+                />
+              </div>
+            </div>
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900">
               Understanding Kenyan Bills & Proposals
             </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-gray-600 max-w-xl mx-auto">
               Get clear explanations of new bills and how they affect you - no legal jargon, just straight talk.
             </p>
+            
+            {/* Search Bar - Enhanced Styling with Icon Button */}
+            <form action="" method="get" className="mt-8 sm:mt-10">
+              <div className="flex items-center max-w-xl mx-auto shadow-lg rounded-full overflow-hidden border-2 border-gray-100">
+                <div className="relative flex-grow">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                    <Search className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <input
+                    type="text"
+                    name="query"
+                    placeholder="Search for a bill or policy..."
+                    defaultValue={query}
+                    className="block w-full pl-10 pr-4 py-3 sm:py-4 border-0 focus:ring-0 focus:outline-none text-sm sm:text-base placeholder-gray-400"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 p-3 sm:p-4 transition-colors duration-200 flex-shrink-0"
+                  aria-label="Search"
+                >
+                  <Search className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </button>
+              </div>
+              
+              {/* Search Suggestions - Mobile Only */}
+              <div className="mt-3 flex flex-wrap justify-center gap-2 sm:hidden">
+                <button
+                  type="submit"
+                  name="query" 
+                  value="Budget Policy"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs text-gray-700 transition-colors"
+                >
+                  Budget Policy
+                </button>
+                <button
+                  type="submit"
+                  name="query" 
+                  value="AI Strategy"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs text-gray-700 transition-colors"
+                >
+                  AI Strategy
+                </button>
+                <button
+                  type="submit"
+                  name="query" 
+                  value="Virtual Assets"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs text-gray-700 transition-colors"
+                >
+                  Virtual Assets
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="mx-auto max-w-6xl px-6 lg:px-8">
-        <div className="mx-auto grid gap-8">
-          {analyses?.map((analysis) => {
-            // Safely get the first main point and first key change
-            const firstPoint = analysis.simple_summary?.main_points?.[0]?.title ?? '';
-            const firstChange = analysis.simple_summary?.key_changes?.[0];
-
-            return (
-              <Card 
-                key={analysis.id} 
-                className="group relative overflow-hidden transition-all hover:shadow-lg"
-              >
-                <CardHeader className="space-y-0 pb-4">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex gap-3">
-                      <div className="mt-1">
-                        <FileText className="h-5 w-5 text-blue-500" />
-                      </div>
-                      <div>
-                        <CardTitle className="font-display text-xl">
-                          {analysis.documents.filename}
-                        </CardTitle>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Analyzed {new Date(analysis.documents.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Link 
-                      href={`/analysis/${analysis.documents.id}`}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-sm font-medium hover:bg-blue-100 transition-colors group"
-                    >
-                      Read Analysis
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                    </Link>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="pt-0">
-                  <div className="space-y-4">
-                    {/* Main point preview */}
-                    {firstPoint && (
-                      <div className="prose prose-gray prose-sm">
-                        <MarkdownContent 
-                          content={firstPoint.split('\n\n')?.[0] ?? firstPoint}
-                          className="line-clamp-3"
-                        />
-                      </div>
-                    )}
-
-                    {/* Key change preview */}
-                    {firstChange && (
-                      <div className="mt-6 grid md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-lg bg-gray-50 transition-colors group-hover:bg-gray-100">
-                          <p className="text-sm font-medium text-gray-900 mb-1">Current Situation</p>
-                          <p className="text-sm text-gray-600">{firstChange.from}</p>
-                        </div>
-                        <div className="p-4 rounded-lg bg-blue-50 transition-colors group-hover:bg-blue-100">
-                          <p className="text-sm font-medium text-blue-900 mb-1">Proposed Change</p>
-                          <p className="text-sm text-blue-800">{firstChange.to}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-
-          {(!analyses || analyses.length === 0) && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No analyzed documents yet.</p>
-            </div>
-          )}
-        </div>
+      {/* Content Section */}
+      <div className="bg-gray-50 flex-grow">
+        <Suspense fallback={<div className="py-20 text-center">Loading...</div>}>
+          <SearchResults query={query} />
+        </Suspense>
       </div>
+
+      {/* Footer Section */}
+      <footer className="bg-white border-t border-gray-200 py-6 sm:py-8">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center">
+            <p className="text-sm text-gray-500">
+              © 2025 Skika. All rights reserved.
+            </p>
+            <div className="mt-3 sm:mt-0 flex space-x-6">
+              <a href="#" className="text-sm text-gray-500 hover:text-gray-900">Privacy Policy</a>
+              <a href="#" className="text-sm text-gray-500 hover:text-gray-900">Terms of Service</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

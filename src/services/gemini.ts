@@ -126,7 +126,7 @@ const deepDiveSchema = {
 // Initial Analysis Function
 export async function analyzePDF(pdfUrl: string) {
   const model = genAI.getGenerativeModel({
-    model: "gemini-exp-1206",
+    model: "gemini-1.5-flash",
     generationConfig: {
       temperature: 0.7,
       responseMimeType: "application/json",
@@ -180,7 +180,7 @@ export async function analyzePDF(pdfUrl: string) {
 // Impact Analysis Function
 export async function analyzeImpact(pdfUrl: string, simpleAnalysis: SimpleAnalysis) {
   const model = genAI.getGenerativeModel({
-    model: "gemini-exp-1206",
+    model: "gemini-2.0-flash-lite",
     generationConfig: {
       temperature: 0.7,
       responseMimeType: "application/json",
@@ -231,7 +231,7 @@ export async function analyzeImpact(pdfUrl: string, simpleAnalysis: SimpleAnalys
 // Deep Dive Analysis Function
 export async function analyzeDeepDive(pdfUrl: string, initialAnalysis: AnalysisResult) {
   const model = genAI.getGenerativeModel({
-    model: "gemini-exp-1206",
+    model: "gemini-2.0-flash-lite",
     generationConfig: {
       temperature: 0.7,
       responseMimeType: "application/json",

@@ -32,7 +32,7 @@ export function StepThrough({ points }: StepThroughProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Progress Bar */}
       <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
         <div 
@@ -42,8 +42,8 @@ export function StepThrough({ points }: StepThroughProps) {
       </div>
 
       {/* Content */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-8">
+      <Card className="overflow-hidden shadow-sm">
+        <CardContent className="p-4 sm:p-6 md:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
@@ -51,15 +51,17 @@ export function StepThrough({ points }: StepThroughProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="min-h-[400px]"
+              className="min-h-[250px] sm:min-h-[300px] md:min-h-[400px]"
             >
-              <div className="space-y-4">
-                <SmartContent 
-                  content={points[currentIndex].title} 
-                  index={currentIndex}
-                />
+              <div className="space-y-3 sm:space-y-4">
+                <div className="text-base sm:text-lg md:text-xl font-medium">
+                  <SmartContent 
+                    content={points[currentIndex].title} 
+                    index={currentIndex}
+                  />
+                </div>
                 {points[currentIndex].description && (
-                  <div className="mt-4 text-gray-600 leading-relaxed">
+                  <div className="mt-2 sm:mt-4 text-sm sm:text-base text-gray-600 leading-relaxed">
                     {points[currentIndex].description}
                   </div>
                 )}
@@ -75,23 +77,25 @@ export function StepThrough({ points }: StepThroughProps) {
           variant="ghost"
           onClick={prev}
           disabled={currentIndex === 0}
-          className="gap-2"
+          className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm"
+          size="sm"
         >
-          <ChevronLeft className="w-4 h-4" />
-          Previous
+          <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="hidden xs:inline">Previous</span>
         </Button>
         
-        <span className="text-sm text-gray-500">
+        <span className="text-xs sm:text-sm text-gray-500">
           {currentIndex + 1} of {points.length}
         </span>
         
         <Button
           onClick={next}
           disabled={currentIndex === points.length - 1}
-          className="gap-2"
+          className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm"
+          size="sm"
         >
-          Next
-          <ChevronRight className="w-4 h-4" />
+          <span className="hidden xs:inline">Next</span>
+          <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </Button>
       </div>
     </div>
