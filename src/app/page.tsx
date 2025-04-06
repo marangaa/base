@@ -1,14 +1,15 @@
 import Image from 'next/image'
 import { Suspense } from 'react'
 import SearchResults from '@/components/SearchResults'
-import { Search } from 'lucide-react';
+//import { Search } from 'lucide-react';
 
+// Update to handle async searchParams in Next.js 15
 export default async function Home({
-  searchParams
+  searchParams,
 }: {
   searchParams: { query?: string }
 }) {
-  // Properly await the searchParams according to the dynamic-apis.md documentation
+  // In Next.js 15, searchParams is a Promise that needs to be awaited
   const params = await searchParams;
   const query = params?.query || '';
   
@@ -40,7 +41,7 @@ export default async function Home({
               Get clear explanations of new bills and how they affect you - no legal jargon, just straight talk.
             </p>
             
-            {/* Search Bar - Enhanced Styling with Icon Button */}
+            {/* Search functionality temporarily disabled
             <form action="" method="get" className="mt-8 sm:mt-10">
               <div className="flex items-center max-w-xl mx-auto shadow-lg rounded-full overflow-hidden border-2 border-gray-100">
                 <div className="relative flex-grow">
@@ -64,7 +65,6 @@ export default async function Home({
                 </button>
               </div>
               
-              {/* Search Suggestions - Mobile Only */}
               <div className="mt-3 flex flex-wrap justify-center gap-2 sm:hidden">
                 <button
                   type="submit"
@@ -92,6 +92,7 @@ export default async function Home({
                 </button>
               </div>
             </form>
+            */}
           </div>
         </div>
       </div>
